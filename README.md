@@ -37,7 +37,7 @@ DROP TABLE students;
 
 ### Prerequisites
 - GCC compiler
-- Make (optional)
+
 
 ### Compilation
 ```bash
