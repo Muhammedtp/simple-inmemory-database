@@ -1,4 +1,4 @@
-# Custom SQL Database Engine
+# Simple In-Memory SQL Database Engine
 
 A lightweight, in-memory SQL database engine implemented in C that supports basic relational database operations.
 
