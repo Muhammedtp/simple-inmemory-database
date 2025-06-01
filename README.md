@@ -44,8 +44,7 @@ DROP TABLE students;
 # Compile all source files
 gcc -o mydb main.c parser.c table.c
 
-# Or use the provided Makefile
-make
+
 ```
 
 ### Usage
