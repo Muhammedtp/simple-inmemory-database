@@ -7,7 +7,7 @@ A lightweight, in-memory SQL database engine implemented in C that supports basi
 - **SQL Command Support**: CREATE TABLE, INSERT, SELECT, UPDATE, DELETE, DROP TABLE
 - **Interactive Shell**: Command-line interface similar to traditional SQL databases
 - **In-Memory Storage**: Fast data operations without disk I/O
-- **Support Multiple Data Types**: Can store values as String,Integer and Character
+- **Supports Multiple Data Types**: Can store values as String, Integer and Character
 - **Memory Management**: Proper cleanup and error handling
 
 ## Supported SQL Commands
