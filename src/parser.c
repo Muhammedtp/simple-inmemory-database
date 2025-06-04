@@ -62,16 +62,31 @@ void parse_sql(char *query) {
     
     if (strcmp(tokens[0], "CREATE") == 0 && token_count >= 5 && strcmp(tokens[1], "TABLE") == 0) {
         char *table_name = tokens[2];
+        char *columns[MAX_COLUMNS];
+        int datatypes[MAX_COLUMNS];
         int col_count = 0;
-        const char *columns[MAX_COLUMNS];
-        for (int i = 3; i < token_count; i++) {
+        
+        for (int i = 3; i < token_count - 1; i += 2) { // Skip opening parenthesis at tokens[3]
             if (col_count >= MAX_COLUMNS) {
                 printf("Error: Too many columns.\n");
+                for (int j = 0; j < token_count; j++) free(tokens[j]);
                 return;
             }
-            columns[col_count++] = tokens[i];
+            columns[col_count] = tokens[i];
+            if (strcmp(tokens[i + 1], "String") == 0) {
+                datatypes[col_count] = String;
+            } else if (strcmp(tokens[i + 1], "Integer") == 0) {
+                datatypes[col_count] = Integer;
+            } else if (strcmp(tokens[i + 1], "Character") == 0) {
+                datatypes[col_count] = Character;
+            } else {
+                printf("Error: Invalid datatype '%s' for column '%s'.\n", tokens[i + 1], tokens[i]);
+                for (int j = 0; j < token_count; j++) free(tokens[j]);
+                return;
+            }
+            col_count++;
         }
-        create_table(table_name, col_count, columns);
+        create_table(table_name, col_count, columns, datatypes);
     }
     
  

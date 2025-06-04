@@ -7,14 +7,14 @@ A lightweight, in-memory SQL database engine implemented in C that supports basi
 - **SQL Command Support**: CREATE TABLE, INSERT, SELECT, UPDATE, DELETE, DROP TABLE
 - **Interactive Shell**: Command-line interface similar to traditional SQL databases
 - **In-Memory Storage**: Fast data operations without disk I/O
-- **String-based Data**: Stores values as Strings
+- **Support Multiple Data Types**: Can store values as String,Integer and Character
 - **Memory Management**: Proper cleanup and error handling
 
 ## Supported SQL Commands
 
 ```sql
 -- Create a table
-CREATE TABLE students (name, age, rollno);
+CREATE TABLE students (name String, age Integer, grade Character);
 
 -- Insert data
 INSERT INTO students VALUES ('John', '20', '12345');
@@ -37,13 +37,19 @@ DROP TABLE students;
 
 ### Prerequisites
 - GCC compiler
+<<<<<<< HEAD
 
+=======
+<<<<<<< HEAD
+
+=======
+>>>>>>> 154f307 (Modified table structure)
+>>>>>>> d57ac20 (New Table structure)
 
 ### Compilation
 ```bash
 # Compile all source files
 gcc -o mydb main.c parser.c table.c
-
 
 ```
 
@@ -75,6 +81,7 @@ MyDB>
 - **Maximum Rows per Table**: 100
 - **String Field Size**: 16 characters
 - **Query Length Limit**: 256 characters
+- **Datatypes**: String ,Integer ,Character
 
 ## Example Session
 
@@ -82,7 +89,7 @@ MyDB>
 Welcome to MyDB - Custom SQL Database Engine
 Type 'exit' to quit, 'help' for commands
 
-MyDB> CREATE TABLE users (name, email, age);
+MyDB> CREATE TABLE students (name String, age Integer, grade Character);
 MyDB> INSERT INTO users VALUES ('Alice', 'alice@email.com', '25');
 MyDB> SELECT * FROM users;
 Table: users
