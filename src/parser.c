@@ -12,6 +12,10 @@ void parse_sql(char *query) {
     
     char *tokens[MAX_TOKENS];
     int token_count = 0;
+
+    for (int i = 0; i < MAX_TOKENS; i++) {
+        tokens[i] = NULL;
+    }
     
     char *ptr = query_copy;
     char current_token[256];
@@ -73,13 +77,19 @@ void parse_sql(char *query) {
                 return;
             }
             columns[col_count] = tokens[i];
-            if (strcmp(tokens[i + 1], "String") == 0) {
+            if (strcmp(tokens[i + 1], "STRING") == 0) {
                 datatypes[col_count] = String;
-            } else if (strcmp(tokens[i + 1], "Integer") == 0) {
+            } else if (strcmp(tokens[i + 1], "INT") == 0) {
                 datatypes[col_count] = Integer;
-            } else if (strcmp(tokens[i + 1], "Character") == 0) {
+            } else if (strcmp(tokens[i + 1], "CHAR") == 0) {
                 datatypes[col_count] = Character;
-            } else {
+            } else if(strcmp(tokens[i+1],"DATE")==0){
+                datatypes[col_count] = Date;
+            } else if(strcmp(tokens[i+1],"FLOAT")==0){
+                datatypes[col_count] = Float;
+            } else if(strcmp(tokens[i+1],"BOOL")==0){
+                datatypes[col_count] = Bool;
+            }else {
                 printf("Error: Invalid datatype '%s' for column '%s'.\n", tokens[i + 1], tokens[i]);
                 for (int j = 0; j < token_count; j++) free(tokens[j]);
                 return;
@@ -87,6 +97,7 @@ void parse_sql(char *query) {
             col_count++;
         }
         create_table(table_name, col_count, columns, datatypes);
+        
     }
     
  
@@ -106,10 +117,8 @@ void parse_sql(char *query) {
     
     
     else if (strcmp(tokens[0], "SELECT") == 0 && token_count >= 4 && strcmp(tokens[1], "*") == 0 && strcmp(tokens[2], "FROM") == 0) {
+    
     char *table_name = tokens[3];
-    
-    
-    
     bool has_where = false;
     int where_index = -1;
     
@@ -135,7 +144,7 @@ void parse_sql(char *query) {
             }
             
             if (value && strlen(value) > 0) {
-                printf("DEBUG: WHERE %s = %s\n", column_name, value);
+                printf("TUPLES WHERE %s = %s\n", column_name, value);
                 query_rows(table_name, column_name, value);
             } else {
                 printf("Error: No value found in WHERE clause.\n");

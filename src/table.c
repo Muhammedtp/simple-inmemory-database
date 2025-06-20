@@ -23,55 +23,94 @@ void create_table(char *name, const int num_columns, char *columns[], int dataty
             printf("Error: Invalid column name at index %d.\n", i);
             return;
         }
-        if (datatypes[i] != String && datatypes[i] != Integer && datatypes[i] != Character) {
+        if (datatypes[i] < String || datatypes[i] > Date) {
             printf("Error: Unsupported datatype at column %d.\n", i);
             return;
         }
+        for (int j = i + 1; j < num_columns; j++) {
+            if (strcmp(columns[i], columns[j]) == 0) {
+                printf("Error: Duplicate column name '%s' at indices %d and %d.\n", 
+                       columns[i], i, j);
+                return;
+            }
+        }
     }
     
+    if (find_table(name) != -1) {
+        printf("Error: Table '%s' already exists.\n", name);
+        return;
+    }
+
     int index = free_table_index();
     if(index == -1) {
         printf("Error: Maximum number of tables reached.\n");
         return;
     }
     
-    DB.tables[index] = (TableMetaData*) malloc(sizeof(TableMetaData));
-    if(DB.tables[index] == NULL) {
+    TableMetaData *table = (TableMetaData*) malloc(sizeof(TableMetaData));
+    if(table == NULL) {
         printf("Error: Memory allocation failed for table metadata.\n");
         return;
     }
+
+    DB.tables[index] = table;
     
-    strcpy(DB.tables[index]->name, name);
-    DB.tables[index]->num_rows = 0;
-    DB.tables[index]->num_cols = num_columns;
+    strcpy(table->name, name);
+    table->num_rows = 0;
+    table->num_cols = num_columns;
     
     size_t row_size = 0;
-    DB.tables[index]->offset[0] = 0;
+    table->offset[0] = 0;
     
     for(int i = 0; i < num_columns; i++) {
-        DB.tables[index]->datatypes[i] = datatypes[i];
-        strcpy(DB.tables[index]->columns[i], columns[i]);
+        table->datatypes[i] = datatypes[i];
+        strcpy(table->columns[i], columns[i]);
         
         size_t column_size;
-        if(datatypes[i] == String) {
-            column_size = sizeof(char) * STRING_SIZE;
-        }
-        else if(datatypes[i] == Integer) {
-            column_size = sizeof(int);
-        }
-        else if(datatypes[i] == Character) {
-            column_size = sizeof(char);
+
+        switch (datatypes[i]){
+            case String: {
+                column_size = sizeof(char) * STRING_SIZE;
+                break;
+            }
+            case Integer: {
+                column_size = sizeof(int);
+                break;
+            }
+            case Character: {
+                column_size = sizeof(char);
+                break;
+            }
+            case Bool: {
+                column_size = sizeof(bool);
+                break;
+            } 
+            case Float: {
+                column_size = sizeof(float);
+                break;
+            }
+            case Date: {
+                column_size = sizeof(datetype);
+                break;
+            } 
+            default: {
+                printf("Error: Unknown data type %d for column %d.\n", datatypes[i], i);
+                free(table);
+                DB.tables[index] = NULL;
+                return;
+            }
+
         }
         
         row_size += column_size;
         
         if(i < num_columns - 1) {
-            DB.tables[index]->offset[i + 1] = DB.tables[index]->offset[i] + column_size;
+            table->offset[i + 1] = table->offset[i] + column_size;
         }
     }
     
-    DB.tables[index]->rowsize = row_size;
-    DB.tables[index]->memory = NULL;  
+    table->rowsize = row_size;
+    table->memory = NULL;  
     DB.num_tables++;
 
     printf("Table '%s' created successfully with %d columns.\n", name, num_columns);
@@ -91,54 +130,98 @@ int find_table(char *name){
 }
 
 int if_match(TableMetaData *table,int col_in,char *value,int row_in){
+    if(!table || !value || col_in < 0 || col_in >= table->num_cols || 
+        row_in < 0 || row_in >= table->num_rows){
+        return 0;
+    }
+    if (!table->memory || !table->memory[row_in]) {
+        return 0; 
+    }
     char *row_data = (char*)table->memory[row_in];
     void *cell_data = row_data + table->offset[col_in];
+
     
     int match = 0;
     
-    if (table->datatypes[col_in] == Integer) {
-        int cell_value = *(int*)cell_data;
-        int search_value = atoi(value);
-        match = (cell_value == search_value);
-        
-    } else if (table->datatypes[col_in]== Character) {
-        char cell_value = *(char*)cell_data;
-        char search_value = value[0];
-        match = (cell_value == search_value);
-        
-    } else if (table->datatypes[col_in] == String) {
-        char *cell_value = (char*)cell_data;
-        match = (strcmp(cell_value, value) == 0);
+    switch(table->datatypes[col_in]){
+        case Integer: {
+            int cell_value = *(int*)cell_data;
+            int search_value = atoi(value);
+            match = (cell_value == search_value);
+            break;
+        }
+        case Character: {
+            char cell_value = *(char*)cell_data;
+            char search_value = value[0];
+            match = (cell_value == search_value);
+            break;
+        }
+        case String: {
+            char *cell_value = (char*)cell_data;
+            match = (strcmp(cell_value, value) == 0);
+            break;
+        }
+        case Bool: {
+            bool cell_value = *(bool*)cell_data; // Fixed: was casting to char*
+            bool search_val = false;
+            
+            if (strcmp(value, "true") == 0 || strcmp(value, "TRUE") == 0 ||
+                strcmp(value, "1") == 0 || strcmp(value, "yes") == 0 ||
+                strcmp(value, "YES") == 0) {
+                search_val = true;
+            } else if (strcmp(value, "false") == 0 || strcmp(value, "FALSE") == 0 ||
+                      strcmp(value, "0") == 0 || strcmp(value, "no") == 0 ||
+                      strcmp(value, "NO") == 0) {
+                search_val = false;
+            } else {
+                return 0;
+            }
+            
+            match = (cell_value == search_val);
+            break;
+        }
+        case Float: {
+            float cell_val = *(float*)cell_data;
+            float search_val = atof(value);
+            match = (fabs(cell_val - search_val) < 1e-6);
+            break;
+        }
+        case Date: {
+             datetype cell_val = *(datetype*)cell_data;
+            datetype search_val = parse_date_string(value);
+            match = (cell_val==search_val);
+            break;
+        }
     }
     return match;
 }
 
-void insert(char *table_name, char *values[], const int num_cols) {
+bool insert(char *table_name, char *values[], const int num_cols) {
     if (!table_name || !values) {
         printf("Error: Null table name or values.\n");
-        return;
+        return false;
     }
     
     int ind = find_table(table_name);
     if (ind == -1) {
         printf("Error: Table '%s' not found.\n", table_name);
-        return;
+        return false;
     }
     
     if (num_cols != DB.tables[ind]->num_cols) {
         printf("Error: Number of values (%d) does not match number of columns (%d).\n",  num_cols, DB.tables[ind]->num_cols);
-        return;
+        return false;
     }
     
     if (DB.tables[ind]->num_rows >= MAX_ROWS) {
         printf("Error: Maximum number of rows exceeded.\n");
-        return;
+        return false;
     }
     
     for (int i = 0; i < num_cols; i++) {
         if (!values[i]) {
             printf("Error: Null value at column %d.\n", i);
-            return;
+            return false;
         }
     }
     
@@ -150,36 +233,87 @@ void insert(char *table_name, char *values[], const int num_cols) {
         table->memory = (void**)malloc(sizeof(void*) * MAX_ROWS);
         if (table->memory == NULL) {
             printf("Error: Failed to allocate memory for row pointers.\n");
-            return;
+            return false;
         }
     }
     
     table->memory[current_row] = malloc(table->rowsize);
     if (table->memory[current_row] == NULL) {
         printf("Error: Failed to allocate memory for row data.\n");
-        return;
+        return false;
     }
     
     char *row_data = (char*)table->memory[current_row];
     
     for (int i = 0; i < num_cols; i++) {
         void *cell_location = row_data + table->offset[i];
-        if (table->datatypes[i] == String) {
 
-            strncpy((char*)cell_location, values[i], STRING_SIZE - 1);
-            ((char*)cell_location)[STRING_SIZE - 1] = '\0'; 
-            
-        } else if (table->datatypes[i] == Integer) {
-            int int_value = atoi(values[i]);
-            *(int*)cell_location = int_value;
-            
-        } else if (table->datatypes[i] == Character) {
-            *(char*)cell_location = values[i][0];
-        }
-    }
+        switch(table->datatypes[i]){
+                    case Integer: {
+                        char *endptr;
+                        long value = strtol(values[i], &endptr, 10);
+                        if (*endptr != '\0' || value > INT_MAX || value < INT_MIN) {
+                            printf("Error: Invalid integer value '%s'.\n", values[i]);
+                            free(table->memory[current_row]);
+                            return false;
+                        }
+                        *(int*)cell_location = (int)value;
+                        break;
+                    }
+                    case Character: {
+                        *(char*)cell_location = values[i][0];
+                        break;
+                    }
+                    case String: {
+                        strncpy((char*)cell_location, values[i], STRING_SIZE - 1);
+                        ((char*)cell_location)[STRING_SIZE - 1] = '\0'; 
+                        break;
+                    }
+                    case Bool: {
+                        if(strcmp(values[i], "true") == 0 || strcmp(values[i], "TRUE") == 0 || 
+                            strcmp(values[i], "1") == 0 || strcmp(values[i], "yes") == 0 || 
+                            strcmp(values[i], "YES") == 0){
+                            *(bool*)cell_location = true;
+                        }else if (strcmp(values[i], "false") == 0 || strcmp(values[i], "FALSE") == 0 || 
+                                strcmp(values[i], "0") == 0 || strcmp(values[i], "no") == 0 || 
+                                strcmp(values[i], "NO") == 0) {
+                            *(bool*)cell_location = false;
+                        } else {
+                            printf("Error: Invalid boolean value");
+                            free(table->memory[current_row]);
+                            table->memory[current_row] = NULL;
+                            return false;
+                        }   
+                        break;
+                    }
+                    case Float: {
+                        char *endptr;
+                        float float_value = strtof(values[i], &endptr);
+                        if (*endptr != '\0') {
+                            printf("Error: Invalid float value '%s'.\n", values[i]);
+                            free(table->memory[current_row]);
+                            return false;
+                        }
+                        *(float*)cell_location = float_value;
+                        break;
+                    }
+                    case Date: {
+                        datetype date_value = parse_date_string(values[i]);
+                        if(date_value==0){
+                            printf("Error: Invalid date value '%s' for column %d.\n", values[i], i);
+                            free(table->memory[current_row]); // Clean up allocated memory
+                            table->memory[current_row] = NULL;
+                            return false;
+                        }
+                        *(datetype*)cell_location = date_value;
+                        break;
+                    }
+                }
+            }
     
     table->num_rows++;
     printf("Row inserted successfully into table '%s'. Total rows: %d\n", table_name, table->num_rows);
+    return true;
 }
 
 
@@ -194,6 +328,10 @@ void query_rows(char *table_name, char *column_name, char *value) {
         return;
     }
     TableMetaData *table = DB.tables[ind];
+    if (table->num_rows == 0) {
+        printf("Error: Table '%s' is empty.\n", table_name);
+        return;
+    }
     int col_index = -1;
     int dt;
     for (int i = 0; i < table->num_cols; i++) {
@@ -227,15 +365,37 @@ void query_rows(char *table_name, char *column_name, char *value) {
             for (int j = 0; j < table->num_cols; j++) {
                 void *cell_location = row_data + table->offset[j];
                 
-                if (table->datatypes[j] == Integer) {
-                    int val = *(int*)cell_location;
-                    printf("%-15d", val);
-                } else if (table->datatypes[j] == Character) {
-                    char val = *(char*)cell_location;
-                    printf("%-15c", val);
-                } else if (table->datatypes[j] == String) {
-                    char *val = (char*)cell_location;
-                    printf("%-15s", val);
+                switch(table->datatypes[j]){
+                    case Integer: {
+                        int val = *(int*)cell_location;
+                        printf("%-15d\t", val);
+                        break;
+                    }
+                    case Character: {
+                        char val = *(char*)cell_location;
+                        printf("%-15c\t", val);
+                        break;
+                    }
+                    case String: {
+                        char *val = (char*)cell_location;
+                        printf("%-15s\t", val);
+                        break;
+                    }
+                    case Bool: {
+                        bool val = *(bool*)cell_location;
+                        printf("%-15s\t", val ? "true" : "false");
+                        break;
+                    }
+                    case Float: {
+                        float val = *(float*)cell_location;
+                        printf("%-15f\t", val);
+                        break;
+                    }
+                    case Date: {
+                       datetype val = *(datetype*)cell_location;
+                        print_date(val);
+                        break;
+                    }
                 }
             }
             printf("\n");
@@ -248,31 +408,6 @@ void query_rows(char *table_name, char *column_name, char *value) {
         printf("\nFound %d matching row(s).\n", found);
     }
 }
-
-// void verify_table(char *name) {
-//     if (!name) {
-//         printf("Error: Null table name.\n");
-//         return;
-//     }
-//     int i = find_table(name);
-//     if (i == -1) {
-//         printf("Error: Table '%s' not found.\n", name);
-//         return;
-//     }
-//     printf("\nTable details:\n%s\nnum_rows: %d\nnum_cols: %d\n", DB.tables[i]->name, DB.tables[i]->num_rows, DB.tables[i]->num_cols);
-//     for (int j = 0; j < DB.tables[i]->num_cols; j++) {
-//         printf("  Column %d: %s", j, DB.tables[i]->columns[j]->name);
-//         if (DB.tables[i]->num_rows > 0) {
-//             printf(" (values: ");
-//             for (int k = 0; k < DB.tables[i]->num_rows; k++) {
-//                 printf("%s", DB.tables[i]->columns[j]->values[k] ? DB.tables[i]->columns[j]->values[k] : "NULL");
-//                 if (k < DB.tables[i]->num_rows - 1) printf(", ");
-//             }
-//             printf(")");
-//         }
-//         printf("\n");
-//     }
-// }
 
 void drop_table(char *table){
     int ind = find_table(table);
@@ -347,23 +482,23 @@ void delete_rows(char *table_name, char *column_name, char *value) {
     }
 }
 
-void update_rows(char *table_name, char *cond_column, char *cond_value, char *target_column, char *new_value) {
+bool update_rows(char *table_name, char *cond_column, char *cond_value, char *target_column, char *new_value) {
     if (!table_name || !cond_column || !cond_value || !target_column || !new_value) {
         printf("Error: Null table name, column name, or value.\n");
-        return;
+        return false;
     }
     if (strlen(new_value) >= STRING_SIZE - 1) {
         printf("Error: New value too long.\n");
-        return;
+        return false;
     }
     int ind = find_table(table_name);
     if (ind == -1) {
         printf("Error: Table '%s' not found.\n", table_name);
-        return;
+        return false;
     }
     TableMetaData *table = DB.tables[ind];
     int cond_col_index = -1, target_col_index = -1;
-    for (int i = 0; i < DB.tables[ind]->num_cols; i++) {
+    for (int i = 0; i < table->num_cols; i++) {
         if (strcmp(table->columns[i], cond_column) == 0) {
             cond_col_index = i;
         }
@@ -373,35 +508,82 @@ void update_rows(char *table_name, char *cond_column, char *cond_value, char *ta
     }
     if (cond_col_index == -1) {
         printf("Error: Condition column '%s' not found.\n", cond_column);
-        return;
+        return false;
     }
     if (target_col_index == -1) {
         printf("Error: Target column '%s' not found.\n", target_column);
-        return;
+        return false;
     }
     int updated = 0;
-    for (int r = 0; r < DB.tables[ind]->num_rows; r++) {
+    for (int r = 0; r < table->num_rows; r++) {
         if (if_match(table, cond_col_index, cond_value, r)) {
             void *cell = (char*)table->memory[r] + table->offset[target_col_index];
-            if (table->datatypes[target_col_index] == Integer) {
-                int value = atoi(new_value);
-                *(int*)cell = value;
-            } else if (table->datatypes[target_col_index] == Character) {
-                char value = new_value[0];
-                *(char *)cell = value;
-            } else if (table->datatypes[target_col_index] == String) {
-                char *ptr = (char*)cell;
-                strncpy(ptr, new_value, STRING_SIZE - 1);
-                ptr[STRING_SIZE - 1] = '\0';
-            }
+            switch(table->datatypes[target_col_index]){
+                    case Integer: {
+                        char *endptr;
+                        long value = strtol(new_value, &endptr, 10);
+                        if (*endptr != '\0' || value > INT_MAX || value < INT_MIN) {
+                        printf("Error: Invalid integer value '%s'.\n", new_value);
+                        return false;
+                        }
+                        *(int*)cell = (int)value;
+                        break;
+                    }
+                    case Character: {
+                        char value = new_value[0];
+                        *(char *)cell = value;
+                        break;
+                    }
+                    case String: {
+                        char *ptr = (char*)cell;
+                        strncpy(ptr, new_value, STRING_SIZE - 1);
+                        ptr[STRING_SIZE - 1] = '\0';
+                        break;
+                    }
+                    case Bool: {
+                        if(strcmp(new_value, "true") == 0 || strcmp(new_value, "TRUE") == 0 || 
+                            strcmp(new_value, "1") == 0 || strcmp(new_value, "yes") == 0 || 
+                            strcmp(new_value, "YES") == 0){
+                            *(bool*)cell = true;
+                        }else if (strcmp(new_value, "false") == 0 || strcmp(new_value, "FALSE") == 0 || 
+                                strcmp(new_value, "0") == 0 || strcmp(new_value, "no") == 0 || 
+                                strcmp(new_value, "NO") == 0) {
+                            *(bool*)cell = false;
+                        } else {
+                            printf("Error: Invalid boolean value");
+                            return false;
+                        }   
+                        break;
+                    }
+                    case Float: {
+                        char *endptr;
+                        float float_value = strtof(new_value, &endptr);
+                        if (*endptr != '\0') {
+                            printf("Error: Invalid float value '%s'.\n", new_value);
+                            return false;
+                        }
+                        *(float*)cell = float_value;
+                        break;
+                    }
+                    case Date: {
+                        datetype date_value = parse_date_string(new_value);
+                        if(date_value==0){
+                            printf("Error: Invalid date value '%s' .\n", new_value);
+                            return false;
+                        }
+                        *(datetype*)cell = date_value;
+                        break;
+                    }
+                } 
             updated++;
+            }
         }
-    }
     if (updated > 0) {
         printf("%d row(s) updated in %s where %s = %s.\n", updated, table_name, cond_column, cond_value);
     } else {
         printf("No rows found with %s = %s.\n", cond_column, cond_value);
     }
+    return true;
 }
 
 
@@ -439,18 +621,40 @@ void query_all_rows(const char *table_name) {
 
             void *cell_location = row_data + table->offset[j];
             
-            if (table->datatypes[j] == Integer) {
-                int value = *(int*)cell_location;
-                printf("%-15d", value);
-                
-            } else if (table->datatypes[j] == Character) {
-                char value = *(char*)cell_location;
-                printf("%-15c", value);
-                
-            } else if (table->datatypes[j] == String) {
-                char *value = (char*)cell_location;
-                printf("%-15s", value);
+            switch (table->datatypes[j]){
+                case Integer: {
+                    int value = *(int*)cell_location;
+                    printf("%-15d\t", value);
+                    break;
+                }
+                case String: {
+                    char *value = (char*)cell_location;
+                    printf("%-15s\t", value);
+                    break;
+                }
+                case Character: {
+                    char value = *(char*)cell_location;
+                    printf("%-15c\t", value);
+                    break;
+                }
+                case Bool: {
+                        bool val = *(bool*)cell_location;
+                        printf("%-15s\t", val ? "true" : "false");
+                        break;
+                    }
+                    case Float: {
+                        float val = *(float*)cell_location;
+                        printf("%-15.2f\t", val);
+                        break;
+                    }
+                    case Date: {
+                       datetype val = *(datetype*)cell_location;
+                        print_date(val);
+                        break;
+                    }
+
             }
+            
         }
         printf("\n");
     }
