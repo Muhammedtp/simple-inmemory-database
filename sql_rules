@@ -1,0 +1,257 @@
+MyDB SQL Language Specification
+
+Data Types
+- `INT` - 32-bit signed integers
+- `CHAR` - Single character
+- `STRING`  - String up to 16 characters
+- `BOOL`  - Boolean values (true/false)
+- `FLOAT` - Floating point numbers
+- `DATE` - Date values
+
+1. CREATE TABLE Statement
+
+Syntax:
+
+CREATE TABLE table_name (
+    column1 datatype,
+    column2 datatype,
+    ...
+);
+
+
+Examples:
+
+CREATE TABLE users (
+    id INT,
+    name STRING,
+    age INT,
+    active BOOL,
+    grade CHAR,
+    salary FLOAT,
+    birth_date DATE
+);
+
+CREATE TABLE products (
+    product_id INT,
+    product_name STRING,
+    price FLOAT,
+    available BOOL
+);
+
+2. INSERT Statement
+
+Syntax:
+
+INSERT INTO table_name VALUES (value1, value2, ...);
+
+
+Examples:
+
+INSERT INTO users VALUES (1, 'John Doe', 25, true, 'A', 50000.50, '18/04/2004');
+INSERT INTO users VALUES (2, 'Jane Smith', 30, false, 'B', 60000.75, '10-02-2011');
+
+INSERT INTO products VALUES (101, 'Laptop', 999.99, true);
+INSERT INTO products VALUES (102, 'Mouse', 25.50, false);
+
+
+Value Format Rules:
+- INT: Plain numbers: 123, -456
+- STRING: Quoted strings: 'Hello World', 'Product Name'
+- CHAR: Single character: 'A', 'X'
+- BOOL: `true`, `false`, `TRUE`, `FALSE`, `1`, `0`, `yes`, `no`
+- FLOAT: Decimal numbers: `123.45`, `-67.89`
+- DATE: format: 'DD-MM-YYY' like '15-01-2025' or 'DD/MM/YY' like '15/03/2025'
+
+
+3. SELECT Statement
+
+Basic SELECT (Query All):
+
+SELECT * FROM table_name;
+
+Conditional SELECT (Query with WHERE):
+
+SELECT * FROM table_name WHERE column_name = value;
+
+
+Examples:
+
+-- Show all users
+SELECT * FROM users;
+
+-- Find users with specific age
+SELECT * FROM users WHERE age = 25;
+
+-- Find active users
+SELECT * FROM users WHERE active = true;
+
+-- Find users with grade 'A'
+SELECT * FROM users WHERE grade = 'A';
+
+-- Find users by name
+SELECT * FROM users WHERE name = 'John Doe';
+
+-- Find products by price
+SELECT * FROM products WHERE price = 999.99;
+
+-- Find users born on specific date
+SELECT * FROM users WHERE birth_date = '1998-05-15';
+
+
+4. UPDATE Statement
+
+Syntax:
+
+UPDATE table_name SET target_column = new_value WHERE condition_column = condition_value;
+
+
+Examples:
+
+-- Update user's salary
+UPDATE users SET salary = 55000.00 WHERE id = 1;
+
+-- Update user's status
+UPDATE users SET active = false WHERE name = 'John Doe';
+
+-- Update product price
+UPDATE products SET price = 29.99 WHERE product_name = 'Mouse';
+
+-- Update user's grade
+UPDATE users SET grade = 'A' WHERE age = 30;
+
+-- Update date
+UPDATE users SET birth_date = '1998-06-15' WHERE id = 1;
+
+
+5. DELETE Statement
+
+### Syntax:
+
+DELETE FROM table_name WHERE column_name = value;
+
+
+Examples:
+
+-- Delete user by ID
+DELETE FROM users WHERE id = 1;
+
+-- Delete inactive users
+DELETE FROM users WHERE active = false;
+
+-- Delete users by name
+DELETE FROM users WHERE name = 'Jane Smith';
+
+-- Delete products by availability
+DELETE FROM products WHERE available = false;
+
+-- Delete users by grade
+DELETE FROM users WHERE grade = 'C';
+
+
+6. DROP TABLE Statement
+
+Syntax:
+
+DROP TABLE table_name;
+
+
+Examples:
+
+DROP TABLE users;
+DROP TABLE products;
+
+
+## 7. Complete Example Session
+
+
+-- Create a table
+CREATE TABLE employees (
+    emp_id INT,
+    name STRING,
+    department CHAR,
+    salary FLOAT,
+    is_manager BOOL,
+    hire_date DATE
+);
+
+-- Insert some data
+INSERT INTO employees VALUES (1, 'Alice Johnson', 'E', 75000.00, true, '2020-01-15');
+INSERT INTO employees VALUES (2, 'Bob Wilson', 'M', 65000.50, false, '2021-03-22');
+INSERT INTO employees VALUES (3, 'Carol Davis', 'E', 70000.25, false, '2019-08-10');
+INSERT INTO employees VALUES (4, 'David Brown', 'S', 80000.00, true, '2018-11-05');
+
+-- Query all employees
+SELECT * FROM employees;
+
+-- Find employees in Engineering department
+SELECT * FROM employees WHERE department = 'E';
+
+-- Find managers
+SELECT * FROM employees WHERE is_manager = true;
+
+-- Find employees with specific salary
+SELECT * FROM employees WHERE salary = 75000.00;
+
+-- Update an employee's salary
+UPDATE employees SET salary = 78000.00 WHERE emp_id = 1;
+
+-- Update department
+UPDATE employees SET department = 'M' WHERE name = 'Carol Davis';
+
+-- Delete an employee
+DELETE FROM employees WHERE emp_id = 2;
+
+-- Query remaining employees
+SELECT * FROM employees;
+
+-- Drop the table
+DROP TABLE employees;
+
+
+8. Language Rules and Constraints
+
+Table Names:
+- Must be unique
+- Maximum length: 16 characters
+- Cannot be empty
+
+Column Names:
+- Must be unique within a table
+- Maximum length: 16 characters
+- Cannot be empty
+
+Data Constraints:
+- Maximum 64 tables (MAX_TABLES)
+- Maximum 64 columns per table (MAX_COLUMNS)
+- Maximum 1000 rows per table (MAX_ROWS)
+- String maximum length: 16 characters (STRING_SIZE)
+
+SQL Keywords (Case Insensitive):
+- `CREATE`, `TABLE`, `INSERT`, `INTO`, `VALUES`
+- `SELECT`, `FROM`, `WHERE`, `UPDATE`, `SET`
+- `DELETE`, `DROP`
+- `INT`, `CHAR`, `STRING`, 
+- `BOOL`, `FLOAT`, `DATE`,
+- `TRUE`, `FALSE`, `YES`, `NO`
+
+Operators:
+- Equality: `=` (only equality comparison supported)
+
+9. Error Handling
+
+The database will return appropriate error messages for:
+- Table not found
+- Column not found
+- Invalid data types
+- Constraint violations
+- Memory allocation failures
+- Invalid syntax
+
+10. Usage Notes
+
+- All SQL keywords are case-insensitive
+- String values must be enclosed in single quotes
+- Boolean values can be: `true/false`, `TRUE/FALSE`, `1/0`, `yes/no`, `YES/NO`
+- Date format must be 'DD-MM-YYYY' and 'DD/MM/YYYY'
+- Only equality operations are supported in WHERE clauses
+- No JOINs, subqueries, or aggregate functions in this version

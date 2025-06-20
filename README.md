@@ -7,49 +7,45 @@ A lightweight, in-memory SQL database engine implemented in C that supports basi
 - **SQL Command Support**: CREATE TABLE, INSERT, SELECT, UPDATE, DELETE, DROP TABLE
 - **Interactive Shell**: Command-line interface similar to traditional SQL databases
 - **In-Memory Storage**: Fast data operations without disk I/O
-- **Support Multiple Data Types**: Can store values as String,Integer and Character
+- **Support Multiple Data Types**: Can store values as String, Integer, Character, Float, Boolean and Date. 
 - **Memory Management**: Proper cleanup and error handling
 
 ## Supported SQL Commands
 
+check the sql_rules file as well
+
 ```sql
 -- Create a table
-CREATE TABLE students (name String, age Integer, grade Character);
+CREATE TABLE employees (id INT, name STRING, department CHAR, salary FLOAT, is_manager BOOL, hire_date DATE);
 
 -- Insert data
-INSERT INTO students VALUES ('John', '20', '12345');
+INSERT INTO employees VALUES (1, 'John Doe', 'E', 75000.50, true, '15/01/2020')
 
 -- Query data
-SELECT * FROM students;
-SELECT * FROM students WHERE age = '20';
+SELECT * FROM employees;
+SELECT * FROM employees WHERE id = 1
+SELECT * FROM employees WHERE hire_date = '15/01/2020'
 
 -- Update records
-UPDATE students SET age = '21' WHERE name = 'John';
+UPDATE employees SET salary = 78000.00 WHERE id = 1
 
 -- Delete records
-DELETE FROM students WHERE rollno = '12345';
+DELETE FROM employees WHERE name = 'John Doe';
 
 -- Drop table
-DROP TABLE students;
+DROP TABLE employee
 ```
 
 ## Building and Running
 
 ### Prerequisites
 - GCC compiler
-<<<<<<< HEAD
 
-=======
-<<<<<<< HEAD
-
-=======
->>>>>>> 154f307 (Modified table structure)
->>>>>>> d57ac20 (New Table structure)
 
 ### Compilation
 ```bash
 # Compile all source files
-gcc -o mydb main.c parser.c table.c
+gcc -o mydb main.c parser.c table.c date.c
 
 ```
 
@@ -68,20 +64,24 @@ MyDB>
 ## Project Structure
 
 ```
+src
 ├── main.c          # Main program with interactive shell
 ├── parser.c/h      # SQL command parser and tokenizer
 ├── table.c/h       # Table management and data operations
-└── README.md       # This file
+└── date.c/h
+README.md      # This file
+sql_rules 
+
 ```
 
 ## Technical Specifications
 
-- **Maximum Tables**: 16
-- **Maximum Columns per Table**: 16  
-- **Maximum Rows per Table**: 100
-- **String Field Size**: 16 characters
+- **Maximum Tables**: 64
+- **Maximum Columns per Table**: 64  
+- **Maximum Rows per Table**: 1000
+- **String Field Size**: 32 characters
 - **Query Length Limit**: 256 characters
-- **Datatypes**: String ,Integer ,Character
+- **Datatypes**: String ,Integer ,Character, Boolean, FLoat, Date.
 
 ## Example Session
 
@@ -89,14 +89,23 @@ MyDB>
 Welcome to MyDB - Custom SQL Database Engine
 Type 'exit' to quit, 'help' for commands
 
-MyDB> CREATE TABLE students (name String, age Integer, grade Character);
-MyDB> INSERT INTO users VALUES ('Alice', 'alice@email.com', '25');
-MyDB> SELECT * FROM users;
-Table: users
-name            email           age            
-Alice           alice@email.com 25             
+MyDB> CREATE TABLE employees (id INT, name STRING, department CHAR, salary FLOAT, is_manager BOOL, hire_date DATE);
+Table 'employees' created successfully with 6 columns.
+
+MyDB> INSERT INTO employees VALUES (1, 'John Doe', 'E', 75000.50, true, '15/01/2020');
+Row inserted successfully into table 'employees'. Total rows: 1
+
+MyDB> SELECT * FROM employees;
+Table: employees
+id              name            department      salary          is_manager      hire_date       
+------------------------------------------------------------------------------------------
+1               John Doe        E               75000.50        true            15-01-2020
+
+Total rows: 1
+
 MyDB> exit
 Goodbye!
+Cleaning up database...
 ```
 
 ## Contributing
